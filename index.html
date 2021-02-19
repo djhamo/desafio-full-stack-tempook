@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+        <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+        <style>
+         html, body {
+             height: 100%;
+             padding: 0;
+             margin: 0;
+             text-align: center;
+         }
+         #map {
+             /* configure the size of the map */
+             width: 90%;
+             height: 90%;
+         }
+        </style>
+        <title>Desafio Tempo OK - Full-stack</title>
+    </head>
+    <body >
+        <script>
+            var object_data_json;
+            var _labels = [] ;
+            var _dt = [] ;
+            var _data = [] ;
+            var _selectCity = [] ;
+            var _totStation;
+
+            function changeAction(val){
+                // show a marker on the map
+                var station = object_data_json.stations[val];
+                // initialize Leaflet
+                //
+                map.setView([station.station.latitude, station.station.longitude], 9);
+                marker.setLatLng([station.station.latitude, station.station.longitude]);
+
+                //Gera o Gráfico
+                new Chart(document.getElementById("line-chart"), {
+                    type: 'line',
+                    data: {
+                        labels: _labels[val],
+                        datasets: [{ 
+                            data: _data[val],
+                            label: _dt[val],
+                            borderColor: "#3e95cd",
+                            fill: false
+                        }
+                        ]
+                    },
+                    options: {
+                        title: {
+                        display: true,
+                        text: 'Temperatura por timestamp (in celcius)'
+                        }
+                    }
+                    });
+
+
+            }
+
+            function populateSelect() {
+                var select = document.getElementById("selectCity"); 
+                for (var i = 0; i < _totStation; i++) {
+                    //console.log(object_data_json.stations[i].station.city );
+                    var opt = _selectCity[i];
+                    var el = document.createElement("option");
+                    el.textContent = opt;
+                    el.value = i;
+                    select.appendChild(el);
+
+                }
+
+            }
+
+
+            let httpRequest = new XMLHttpRequest(); // asynchronous request
+            httpRequest.onreadystatechange = function() {
+                if (this.readyState === this.DONE) {
+                    // when the request has completed
+                    object_data_json = JSON.parse(this.response);
+
+                    _totStation = object_data_json.stations.length;
+                    console.log(_totStation);
+                    for (var i = 0; i < _totStation; i++) {
+                        _selectCity.push(object_data_json.stations[i].station.city + " - " + object_data_json.stations[i].station.state);
+                        _labels.push(object_data_json.stations[i].time);
+                        _dt.push(object_data_json.stations[i].station.name);
+                        _data.push(object_data_json.stations[i].data.air_temperature);
+                    }
+
+                    //console.log(_selectCity);
+                    populateSelect();
+                }
+            };
+            httpRequest.open("GET", "api_response.json", true);
+            httpRequest.send();
+
+            //console.log(_labels);
+            
+            
+        </script>
+        <div style="text-align: center;">
+            <h3>
+                Histórico de temperatura
+            </h3>
+            <select id="selectCity" onchange='changeAction(this.value)'>
+                <option>Escolha uma cidade</option>
+            </select>
+    
+        </div>
+        <div id="map" style="text-align: center;"></div>
+        <script>
+            // initialize Leaflet
+            var map = L.map('map').setView({lon: -49.9783, lat: -20.4203}, 6);
+    
+            // add the OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+            }).addTo(map);
+    
+            // show the scale bar on the lower left corner
+            L.control.scale().addTo(map);
+    
+            // show a marker on the map
+            var marker = L.marker({lon: -49.9783, lat: -20.4203}).bindPopup('Votuporanga, o centro do mundo').addTo(map);
+        </script>
+        <div>
+            <canvas id="line-chart"  width="1600" height="900"></canvas>
+        </div>                    
+    </body>
+</html>
